@@ -1,0 +1,122 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: yejlee2 <yejlee2@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/11/21 16:34:10 by yejlee2           #+#    #+#             */
+/*   Updated: 2023/11/30 16:36:24 by yejlee2          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include <unistd.h>
+#include <stdlib.h>
+#include "libft.h"
+
+#ifndef BUFFER_SIZE
+# define BUFFER_SIZE 1
+#endif
+
+char	*ft_strndup(const char *s1, int byte)
+{
+	char	*dest;
+	int		i;
+
+	i = 0;
+	if (byte == 0)
+		return (0);
+	dest = (char *)malloc(sizeof(char) * (byte + 1));
+	if (dest == 0)
+		return (0);
+	while (s1[i] && byte)
+	{
+		dest[i] = s1[i];
+		i++;
+		byte--;
+	}
+	dest[i] = '\0';
+	return (dest);
+}
+
+int	nl_index(char *str)
+{
+	int	i;
+
+	i = 0;
+	while (str && str[i])
+	{
+		if (str[i] == '\n')
+			return (i);
+		i++;
+	}
+	return (-1);
+}
+
+char	*return_line(char **remainder)
+{
+	int		nl;
+	char	*tmp;
+	char	*return_this;
+	char	*next_remain;
+
+	nl = nl_index(*remainder);
+	if (*remainder == 0)
+		return (0);
+	else if (nl >= 0)
+	{
+		return_this = ft_strndup(*remainder, nl + 1);
+		next_remain = *remainder + nl + 1;
+		tmp = ft_strndup(next_remain, ft_strlen(next_remain));
+		free(*remainder);
+		*remainder = tmp;
+		return (return_this);
+	}
+	else
+	{
+		return_this = *remainder;
+		*remainder = 0;
+		free(*remainder);
+	}
+	return (return_this);
+}
+
+char	*nl_notfound(char **remainder, char *buf, int fd)
+{
+	int		byte;
+	char	*tmp;
+
+	while (nl_index(*remainder) == -1)
+	{
+		byte = read(fd, buf, BUFFER_SIZE);
+		if (byte <= 0)
+			break ;
+		buf[byte] = '\0';
+		if (*remainder == 0)
+			tmp = ft_strndup(buf, byte);
+		else
+			tmp = ft_strjoin(*remainder, buf);
+		free(*remainder);
+		*remainder = tmp;
+	}
+	if (byte == -1)
+	{
+		free(*remainder);
+		*remainder = 0;
+		return (0);
+	}
+	return (return_line(remainder));
+}
+
+char	*get_next_line(int fd)
+{
+	static char	*remainder;
+	char		buf[BUFFER_SIZE + 1];
+
+	if (fd < 0 || BUFFER_SIZE < 1)
+		return (0);
+	if (nl_index(remainder) == -1)
+		return (nl_notfound(&remainder, buf, fd));
+	else
+		return (return_line(&remainder));
+}
